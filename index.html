@@ -393,16 +393,23 @@
       { name: "实践感受", items: ["仪式感", "羞耻感", "压迫感", "被控制感", "服从感"] },
       { name: "束缚相关", items: ["地面绳缚", "吊缚", "项圈", "口球/胶带封嘴", "眼罩"] },
       { name: "感官刺激", items: ["强高（不入体）", "强高（入体）", "电击拍", "电击乳夹（巨疼）", "挠痒痒"] },
-      { name: "其他项目", items: ["普通乳夹", "k9爬行", "走绳/木马虐阴", "姜罚", "难受姿势"] },
-      { name: "羞耻玩法", items: ["对镜玩", "dirty talk", "身体检查", "剃毛", "强制自慰", "憋尿放尿", "撕丝袜", "丝袜堵嘴", "内裤堵嘴", "车内/户外play"] },
+      { name: "其他项目", items: ["普通乳夹", "k9爬行", "走绳", "木马虐阴", "姜罚", "难受姿势"] },
+      { name: "羞耻玩法", items: ["对镜玩", "dirty talk", "身体检查", "剃毛", "强制自慰", "憋尿放尿", "撕丝袜", "丝袜堵嘴", "内裤堵嘴", "车内play", "户外play"] },
       { name: "实践穿着", items: ["jk制服/水手服", "情趣内衣", "丝袜", "丁字裤", "小腿袜"] },
       { name: "实践称呼", items: ["哥哥/妹妹", "主人/小狗"] },
-      { name: "拍摄相关", items: ["实践录音", "拍照（不露脸）", "拍照（露脸）", "录视频（不露脸）", "录视频（露脸）"] }
+      { name: "拍摄相关", items: ["实践录音", "拍照", "录视频"] }
     ];
 
     const flatItems = groups.flatMap(group => group.items);
+    const legacyV2Items = groups.flatMap(group => {
+      if (group.name === "其他项目") return ["普通乳夹", "k9爬行", "走绳/木马虐阴", "姜罚", "难受姿势"];
+      if (group.name === "羞耻玩法") return ["对镜玩", "dirty talk", "身体检查", "剃毛", "强制自慰", "憋尿放尿", "撕丝袜", "丝袜堵嘴", "内裤堵嘴", "车内/户外play"];
+      if (group.name === "拍摄相关") return ["实践录音", "拍照（不露脸）", "拍照（露脸）", "录视频（不露脸）", "录视频（露脸）"];
+      return group.items;
+    });
     const labels = ["空瓶", "三分之一瓶", "三分之二瓶", "满瓶"];
-    const storageKey = "bottle-preference-card-v2";
+    const storageKey = "bottle-preference-card-v3";
+    const v2StorageKey = "bottle-preference-card-v2";
     const legacyStorageKey = "bottle-preference-card-v1";
     const sections = document.getElementById("sections");
     const markedCount = document.getElementById("markedCount");
@@ -435,11 +442,23 @@
       return values.map(value => value === 2 ? 3 : value === 1 ? 2 : 0);
     }
 
+    function migrateV2(values) {
+      const previous = Object.fromEntries(legacyV2Items.map((name, index) => [name, values[index] ?? 0]));
+      return flatItems.map(name => {
+        if (name === "走绳" || name === "木马虐阴") return previous["走绳/木马虐阴"] ?? 0;
+        if (name === "车内play" || name === "户外play") return previous["车内/户外play"] ?? 0;
+        if (name === "拍照") return Math.max(previous["拍照（不露脸）"] ?? 0, previous["拍照（露脸）"] ?? 0);
+        if (name === "录视频") return Math.max(previous["录视频（不露脸）"] ?? 0, previous["录视频（露脸）"] ?? 0);
+        return previous[name] ?? 0;
+      });
+    }
+
     const params = new URLSearchParams(location.search);
     const decodedSharedState = params.get("s") ? decodeState(params.get("s")) : null;
-    const sharedState = decodedSharedState
-      ? (params.get("v") === "2" ? decodedSharedState : migrateLegacy(decodedSharedState))
-      : null;
+    const sharedState = !decodedSharedState ? null
+      : params.get("v") === "3" ? decodedSharedState
+      : params.get("v") === "2" ? migrateV2(decodedSharedState)
+      : migrateV2(migrateLegacy(decodedSharedState));
     let state = sharedState;
 
     if (!state) {
@@ -448,8 +467,15 @@
         if (Array.isArray(saved) && saved.length === flatItems.length) {
           state = saved.map(v => [0,1,2,3].includes(v) ? v : 0);
         } else {
-          const legacy = JSON.parse(localStorage.getItem(legacyStorageKey));
-          state = Array.isArray(legacy) && legacy.length === flatItems.length ? migrateLegacy(legacy) : emptyState();
+          const savedV2 = JSON.parse(localStorage.getItem(v2StorageKey));
+          if (Array.isArray(savedV2) && savedV2.length === legacyV2Items.length) {
+            state = migrateV2(savedV2.map(v => [0,1,2,3].includes(v) ? v : 0));
+          } else {
+            const legacy = JSON.parse(localStorage.getItem(legacyStorageKey));
+            state = Array.isArray(legacy) && legacy.length === legacyV2Items.length
+              ? migrateV2(migrateLegacy(legacy))
+              : emptyState();
+          }
         }
       } catch { state = emptyState(); }
     } else {
@@ -491,7 +517,7 @@
       localStorage.setItem(storageKey, JSON.stringify(state));
       const url = new URL(location.href);
       url.searchParams.set("s", encodeState(state));
-      url.searchParams.set("v", "2");
+      url.searchParams.set("v", "3");
       history.replaceState(null, "", url);
     }
 
@@ -580,6 +606,7 @@
       if (!confirm("确定清空全部瓶子吗？")) return;
       state = emptyState();
       localStorage.removeItem(storageKey);
+      localStorage.removeItem(v2StorageKey);
       localStorage.removeItem(legacyStorageKey);
       const url = new URL(location.href);
       url.searchParams.delete("s");
