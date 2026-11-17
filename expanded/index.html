@@ -1,0 +1,793 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#327f9e">
+  <meta name="description" content="点击玻璃瓶，整理并分享彼此的偏好与边界。">
+  <title>小圈喜好瓶 · 微大版</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%23327f9e'/%3E%3Cpath d='M21 13h22v7l4 5v25a8 8 0 0 1-8 8H25a8 8 0 0 1-8-8V25l4-5z' fill='%23e8f7f7' stroke='%23fff' stroke-width='3'/%3E%3Cpath d='M20 39h24v11a5 5 0 0 1-5 5H25a5 5 0 0 1-5-5z' fill='%2348b9d2'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --ink: #19353f;
+      --muted: #607d86;
+      --blue: #327f9e;
+      --blue-dark: #205b76;
+      --cyan: #49b7cf;
+      --aqua: #dff5f4;
+      --paper: #f7fbfb;
+      --line: #d7e9e9;
+      --shadow: 0 12px 34px rgba(36, 94, 113, .10);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% -4%, rgba(73, 183, 207, .18), transparent 28rem),
+        linear-gradient(180deg, #f7fcfc 0%, #fff 28rem);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-tap-highlight-color: transparent;
+    }
+    button { font: inherit; }
+
+    .app {
+      width: min(100%, 960px);
+      margin: 0 auto;
+      padding: 24px 16px calc(118px + env(safe-area-inset-bottom));
+    }
+    header {
+      position: relative;
+      overflow: hidden;
+      padding: 24px 22px 20px;
+      border: 1px solid rgba(50, 127, 158, .13);
+      border-radius: 24px;
+      background: rgba(255, 255, 255, .90);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+    header::after {
+      content: "";
+      position: absolute;
+      right: -32px;
+      top: -44px;
+      width: 148px;
+      height: 148px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, rgba(73, 183, 207, .22), rgba(50, 127, 158, .04));
+    }
+    .eyebrow {
+      margin: 0 0 5px;
+      color: var(--cyan);
+      font-size: .82rem;
+      font-weight: 800;
+      letter-spacing: .12em;
+    }
+    h1 {
+      position: relative;
+      z-index: 1;
+      margin: 0;
+      font-family: ui-serif, "Songti SC", "STSong", serif;
+      font-size: clamp(1.85rem, 7vw, 2.7rem);
+      line-height: 1.12;
+      letter-spacing: -.03em;
+    }
+    .intro { max-width: 600px; margin: 10px 0 0; color: var(--muted); }
+    .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 34px;
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: #4b707b;
+      font-size: .82rem;
+      white-space: nowrap;
+    }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: #e3eded; box-shadow: inset 0 0 0 1px rgba(0,0,0,.07); }
+    .dot.one-third { background: #a9e2e6; }
+    .dot.two-thirds { background: #51bdcf; }
+    .dot.full { background: #257b9b; }
+
+    .progress-card {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px 16px;
+      align-items: center;
+      margin: 18px 0 8px;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255,255,255,.84);
+    }
+    .progress-copy { color: var(--muted); font-size: .9rem; }
+    .progress-copy strong { color: var(--ink); }
+    .progress-count { color: var(--blue-dark); font-weight: 800; font-variant-numeric: tabular-nums; }
+    .progress-track { grid-column: 1 / -1; height: 8px; overflow: hidden; border-radius: 999px; background: #e6f0f0; }
+    .progress-fill { height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, #6ccbd5, #287c9c); transition: width .28s ease; }
+    .shared-banner { display: none; margin: 12px 0 0; padding: 11px 14px; border-radius: 14px; background: #eaf6f6; color: #416d78; font-size: .9rem; }
+    .shared-banner.visible { display: block; }
+
+    main { margin-top: 14px; }
+    section {
+      margin-top: 18px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: rgba(255,255,255,.94);
+      box-shadow: 0 8px 26px rgba(36, 94, 113, .055);
+    }
+    .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    h2 { margin: 0; color: var(--blue-dark); font-family: ui-serif, "Songti SC", "STSong", serif; font-size: 1.25rem; letter-spacing: .02em; }
+    .section-meta { color: #87a5ad; font-size: .78rem; }
+    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .choice {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      min-height: 119px;
+      padding: 9px 4px 7px;
+      border: 1px solid #e0ecec;
+      border-radius: 15px;
+      background: #fff;
+      color: var(--ink);
+      text-align: center;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: transform .15s ease, border-color .15s ease, background .15s ease, box-shadow .15s ease;
+    }
+    .choice:active { transform: scale(.975); }
+    .choice:focus-visible { outline: 3px solid rgba(73, 183, 207, .30); outline-offset: 2px; }
+    .choice[data-state="1"] { border-color: #acdfe2; background: #f7fdfd; }
+    .choice[data-state="2"] { border-color: #71c8d3; background: #f3fbfc; }
+    .choice[data-state="3"] { border-color: #3c93ad; background: #eff9fb; box-shadow: inset 0 0 0 1px rgba(37, 123, 155, .07); }
+
+    .jar {
+      position: relative;
+      width: 52px;
+      height: 72px;
+      margin-top: 2px;
+    }
+    .jar-mouth {
+      position: absolute;
+      z-index: 4;
+      top: 0;
+      left: 12px;
+      width: 28px;
+      height: 9px;
+      border: 2px solid #78a7ac;
+      border-radius: 50%;
+      background: linear-gradient(#f8ffff, #dff1f0);
+      box-shadow: inset 0 1px 0 #fff;
+    }
+    .jar-neck {
+      position: absolute;
+      z-index: 2;
+      top: 4px;
+      left: 14px;
+      width: 24px;
+      height: 12px;
+      border-right: 2px solid #8ab5b8;
+      border-left: 2px solid #8ab5b8;
+      background: rgba(232, 248, 247, .72);
+    }
+    .jar-body {
+      position: absolute;
+      z-index: 1;
+      left: 4px;
+      bottom: 1px;
+      width: 44px;
+      height: 59px;
+      overflow: hidden;
+      border: 2px solid #78a7ac;
+      border-radius: 8px 8px 12px 12px;
+      background: linear-gradient(90deg, rgba(221,244,243,.78), rgba(255,255,255,.94) 38%, rgba(230,246,246,.74));
+      box-shadow: inset 4px 0 7px rgba(108,173,180,.12), inset -3px 0 5px rgba(92,154,162,.10), 0 2px 3px rgba(35,99,112,.08);
+    }
+    .liquid {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 0;
+      background: linear-gradient(90deg, #43a7c0, #62cfda 46%, #2d86a6);
+      transition: height .24s ease;
+    }
+    .liquid::before {
+      content: "";
+      position: absolute;
+      top: -4px;
+      left: 0;
+      width: 100%;
+      height: 8px;
+      border-radius: 50%;
+      background: #78d8df;
+      box-shadow: inset 0 -2px 2px rgba(37,123,155,.22);
+    }
+    .glass-shine {
+      position: absolute;
+      z-index: 3;
+      top: 13px;
+      left: 12px;
+      width: 6px;
+      height: 31px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.66);
+      transform: rotate(3deg);
+    }
+    .choice[data-state="1"] .liquid { height: 29%; }
+    .choice[data-state="2"] .liquid { height: 58%; }
+    .choice[data-state="3"] .liquid { height: 88%; }
+    .choice-label { display: flex; align-items: flex-start; justify-content: center; min-width: 0; width: 100%; font-size: .8rem; font-weight: 650; line-height: 1.28; overflow-wrap: anywhere; }
+
+    .safety { margin: 20px 4px 0; color: #68838a; font-size: .85rem; text-align: center; }
+    .action-bar {
+      position: fixed;
+      z-index: 20;
+      left: 50%;
+      bottom: 0;
+      display: grid;
+      grid-template-columns: .78fr 1.16fr 1.28fr;
+      gap: 8px;
+      width: min(100%, 960px);
+      padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+      transform: translateX(-50%);
+      border-top: 1px solid rgba(50, 127, 158, .14);
+      background: rgba(247, 252, 252, .93);
+      box-shadow: 0 -10px 30px rgba(36, 94, 113, .10);
+      backdrop-filter: blur(18px);
+    }
+    .action { min-height: 50px; border: 0; border-radius: 14px; cursor: pointer; font-weight: 750; }
+    .action:disabled { opacity: .65; cursor: wait; }
+    .reset { background: #e7f0f0; color: #4b707b; }
+    .generate { background: #d9f0f2; color: #22677f; box-shadow: inset 0 0 0 1px rgba(34,103,127,.07); }
+    .share { background: linear-gradient(135deg, #327f9e, #205b76); color: #fff; box-shadow: 0 8px 20px rgba(32,91,118,.25); }
+    .toast {
+      position: fixed;
+      z-index: 50;
+      left: 50%;
+      bottom: calc(86px + env(safe-area-inset-bottom));
+      max-width: calc(100% - 32px);
+      padding: 11px 16px;
+      transform: translate(-50%, 16px);
+      border-radius: 999px;
+      background: #173945;
+      color: #fff;
+      font-size: .88rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s ease, transform .2s ease;
+      text-align: center;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    dialog { width: min(calc(100% - 32px), 480px); border: 0; border-radius: 20px; padding: 22px; color: var(--ink); box-shadow: 0 24px 80px rgba(25,65,78,.30); }
+    dialog::backdrop { background: rgba(18,49,59,.43); backdrop-filter: blur(4px); }
+    dialog h3 { margin: 0 0 8px; font-size: 1.2rem; }
+    dialog p { margin: 0 0 16px; color: var(--muted); font-size: .92rem; }
+    dialog input { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 10px; font: inherit; }
+    .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+    .dialog-actions button { border: 0; border-radius: 10px; padding: 10px 14px; cursor: pointer; }
+    .dialog-actions .primary { background: var(--blue-dark); color: #fff; }
+    .image-dialog { width: min(calc(100% - 24px), 620px); max-height: 90vh; overflow: auto; }
+    .generated-frame { overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: #edf6f6; }
+    .generated-frame img { display: block; width: 100%; height: auto; }
+
+    @media (max-width: 390px) {
+      .action-bar { padding-inline: 10px; gap: 6px; }
+      .action { font-size: .86rem; }
+    }
+    @media (min-width: 620px) {
+      .app { padding-inline: 24px; }
+      .grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+      section { padding: 22px; }
+    }
+    @media (min-width: 840px) { .grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <p class="eyebrow">CLICK · FILL · SHARE</p>
+      <h1>小圈喜好瓶 · 微大版</h1>
+      <p class="intro">轻点瓶子依次增加液体，用四档状态整理彼此想聊、想尝试与暂不考虑的内容。</p>
+      <div class="legend" aria-label="状态说明">
+        <span><i class="dot"></i>空瓶</span>
+        <span><i class="dot one-third"></i>三分之一瓶</span>
+        <span><i class="dot two-thirds"></i>三分之二瓶</span>
+        <span><i class="dot full"></i>满瓶</span>
+      </div>
+    </header>
+
+    <div class="progress-card" aria-live="polite">
+      <div class="progress-copy"><strong>当前进度</strong> · 已标记的项目</div>
+      <div class="progress-count"><span id="markedCount">0</span>/<span id="totalCount">0</span></div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+
+    <div id="sharedBanner" class="shared-banner">你打开的是一份好友分享的喜好瓶，可以在这份基础上继续修改，再分享给对方。</div>
+    <main id="sections"></main>
+    <p class="safety">仅用于成年人之间自愿、安全、清醒的沟通。页面标记不等于同意；每次实践前仍需再次确认边界、安全词与停止方式。</p>
+  </div>
+
+  <div class="action-bar">
+    <button class="action reset" id="resetButton" type="button">清空</button>
+    <button class="action generate" id="generateButton" type="button">生成图片</button>
+    <button class="action share" id="shareButton" type="button">分享链接</button>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+
+  <dialog id="shareDialog">
+    <h3>复制这条分享链接</h3>
+    <p>链接已经包含你当前涂好的结果。在微信中粘贴发送给好友即可。</p>
+    <input id="shareUrl" readonly aria-label="分享链接">
+    <div class="dialog-actions">
+      <button type="button" id="closeDialog">关闭</button>
+      <button type="button" class="primary" id="copyDialog">复制链接</button>
+    </div>
+  </dialog>
+
+  <dialog id="imageDialog" class="image-dialog">
+    <h3>已生成填涂图片</h3>
+    <p>手机可以长按下面的图片保存；电脑可以点击“下载图片”。图片只在你的设备上生成，不会上传。</p>
+    <div class="generated-frame"><img id="generatedImage" alt="已填涂的小圈喜好瓶"></div>
+    <div class="dialog-actions">
+      <button type="button" id="closeImageDialog">关闭</button>
+      <button type="button" class="primary" id="downloadImage">下载图片</button>
+    </div>
+  </dialog>
+
+  <script>
+    const groups = [
+      { name: "类型", items: ["纯实践", "惩戒管教", "游戏实践", "情景剧本", "氛围欢快", "氛围严肃"] },
+      { name: "属性", items: ["易哭", "brat", "脆皮", "喜欢余痛"] },
+      { name: "部位", items: ["屁股", "大腿背面", "大腿正面", "手心", "脚心", "后背", "脸", "胸", "私处"] },
+      { name: "感受", items: ["仪式感", "羞耻感", "压迫感", "被控制感", "不安感", "服从欲", "被关怀感"] },
+      { name: "附加", items: ["罚站", "罚跪", "姜罚", "难受姿势"] },
+      { name: "其他", items: ["地面绳缚", "吊缚", "体外强高", "入体强高", "电击"] },
+      { name: "工具", items: ["手", "皮具", "戒尺", "轻板子", "重板子", "藤条类", "橡胶类", "其他工具"] },
+      { name: "姿势", items: ["亲密姿势", "舒适姿势", "一般姿势", "难坚持的", "较羞耻的", "少见姿势"] },
+      { name: "穿着", items: ["jk制服", "丁字裤", "情趣内衣", "丝袜", "小腿袜"] }
+    ];
+
+    const flatItems = groups.flatMap(group => group.items);
+    const labels = ["空瓶", "三分之一瓶", "三分之二瓶", "满瓶"];
+    const storageKey = "bottle-preference-card-expanded-v1";
+    const sections = document.getElementById("sections");
+    const markedCount = document.getElementById("markedCount");
+    const totalCount = document.getElementById("totalCount");
+    const progressFill = document.getElementById("progressFill");
+    const toast = document.getElementById("toast");
+    const shareDialog = document.getElementById("shareDialog");
+    const shareUrl = document.getElementById("shareUrl");
+    const imageDialog = document.getElementById("imageDialog");
+    const generatedImage = document.getElementById("generatedImage");
+    const generateButton = document.getElementById("generateButton");
+    let toastTimer;
+    let generatedImageUrl;
+
+    const emptyState = () => Array(flatItems.length).fill(0);
+
+    function encodeState(values) {
+      return btoa(values.join("")).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+    }
+
+    function decodeState(value) {
+      try {
+        const padded = value.replaceAll("-", "+").replaceAll("_", "/") + "===".slice((value.length + 3) % 4);
+        const raw = atob(padded);
+        if (raw.length !== flatItems.length || !/^[0123]+$/.test(raw)) return null;
+        return [...raw].map(Number);
+      } catch { return null; }
+    }
+
+    const params = new URLSearchParams(location.search);
+    const sharedState = params.get("s") ? decodeState(params.get("s")) : null;
+    let state = sharedState;
+
+    if (!state) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey));
+        state = Array.isArray(saved) && saved.length === flatItems.length
+          ? saved.map(value => [0, 1, 2, 3].includes(value) ? value : 0)
+          : emptyState();
+      } catch { state = emptyState(); }
+    } else {
+      document.getElementById("sharedBanner").classList.add("visible");
+    }
+
+    function jarMarkup() {
+      return `<span class="jar" aria-hidden="true"><span class="jar-mouth"></span><span class="jar-neck"></span><span class="jar-body"><span class="liquid"></span><span class="glass-shine"></span></span></span>`;
+    }
+
+    function render() {
+      let itemIndex = 0;
+      sections.innerHTML = groups.map((group, groupIndex) => {
+        const buttons = group.items.map(item => {
+          const index = itemIndex++;
+          const value = state[index];
+          return `<button class="choice" type="button" data-index="${index}" data-state="${value}" aria-label="${item}：${labels[value]}">${jarMarkup()}<span class="choice-label">${item}</span></button>`;
+        }).join("");
+        return `<section aria-labelledby="group-${groupIndex}"><div class="section-head"><h2 id="group-${groupIndex}">${group.name}</h2><span class="section-meta">${group.items.length} 项</span></div><div class="grid">${buttons}</div></section>`;
+      }).join("");
+
+      sections.querySelectorAll(".choice").forEach(button => {
+        button.addEventListener("click", () => {
+          const index = Number(button.dataset.index);
+          state[index] = (state[index] + 1) % 4;
+          button.dataset.state = state[index];
+          button.setAttribute("aria-label", `${flatItems[index]}：${labels[state[index]]}`);
+          persist();
+          updateProgress();
+        });
+      });
+      totalCount.textContent = flatItems.length;
+      updateProgress();
+    }
+
+    function persist() {
+      localStorage.setItem(storageKey, JSON.stringify(state));
+      const url = new URL(location.href);
+      url.searchParams.set("s", encodeState(state));
+      url.searchParams.set("v", "1");
+      history.replaceState(null, "", url);
+    }
+
+    function updateProgress() {
+      const marked = state.filter(Boolean).length;
+      markedCount.textContent = marked;
+      progressFill.style.width = `${marked / state.length * 100}%`;
+    }
+
+    function showToast(message) {
+      clearTimeout(toastTimer);
+      toast.textContent = message;
+      toast.classList.add("show");
+      toastTimer = setTimeout(() => toast.classList.remove("show"), 2600);
+    }
+
+    function roundedRect(context, x, y, width, height, radius) {
+      const r = Math.min(radius, width / 2, height / 2);
+      context.beginPath();
+      context.moveTo(x + r, y);
+      context.arcTo(x + width, y, x + width, y + height, r);
+      context.arcTo(x + width, y + height, x, y + height, r);
+      context.arcTo(x, y + height, x, y, r);
+      context.arcTo(x, y, x + width, y, r);
+      context.closePath();
+    }
+
+    function wrapCanvasText(context, text, maxWidth, maxLines = 2) {
+      const lines = [];
+      let current = "";
+      for (const character of [...text]) {
+        const candidate = current + character;
+        if (current && context.measureText(candidate).width > maxWidth) {
+          lines.push(current);
+          current = character;
+          if (lines.length === maxLines - 1) break;
+        } else {
+          current = candidate;
+        }
+      }
+      const consumed = lines.join("").length;
+      if (lines.length < maxLines && consumed < text.length) {
+        let finalLine = text.slice(consumed);
+        while (context.measureText(finalLine).width > maxWidth && finalLine.length > 1) finalLine = finalLine.slice(0, -1);
+        if (consumed + finalLine.length < text.length) finalLine = finalLine.slice(0, -1) + "…";
+        lines.push(finalLine);
+      } else if (current && lines.length < maxLines) {
+        lines.push(current);
+      }
+      return lines;
+    }
+
+    function drawJar(context, centerX, topY, stateValue, scale = 1) {
+      const bodyX = centerX - 30 * scale;
+      const bodyY = topY + 18 * scale;
+      const bodyW = 60 * scale;
+      const bodyH = 82 * scale;
+      const radius = 11 * scale;
+
+      context.save();
+      roundedRect(context, bodyX, bodyY, bodyW, bodyH, radius);
+      context.clip();
+      const glass = context.createLinearGradient(bodyX, bodyY, bodyX + bodyW, bodyY);
+      glass.addColorStop(0, "#d9f0ef");
+      glass.addColorStop(.38, "#ffffff");
+      glass.addColorStop(1, "#dceeee");
+      context.fillStyle = glass;
+      context.fillRect(bodyX, bodyY, bodyW, bodyH);
+
+      const ratios = [0, .29, .58, .88];
+      if (stateValue > 0) {
+        const liquidH = bodyH * ratios[stateValue];
+        const liquidY = bodyY + bodyH - liquidH;
+        const liquid = context.createLinearGradient(bodyX, liquidY, bodyX + bodyW, liquidY);
+        liquid.addColorStop(0, "#43a7c0");
+        liquid.addColorStop(.48, "#62cfda");
+        liquid.addColorStop(1, "#2d86a6");
+        context.fillStyle = liquid;
+        context.fillRect(bodyX, liquidY, bodyW, liquidH);
+        context.fillStyle = "#7ad9df";
+        context.beginPath();
+        context.ellipse(centerX, liquidY, bodyW / 2, 4 * scale, 0, 0, Math.PI * 2);
+        context.fill();
+      }
+      context.restore();
+
+      roundedRect(context, bodyX, bodyY, bodyW, bodyH, radius);
+      context.lineWidth = 3 * scale;
+      context.strokeStyle = "#78a7ac";
+      context.stroke();
+      context.fillStyle = "rgba(255,255,255,.68)";
+      roundedRect(context, bodyX + 10 * scale, bodyY + 12 * scale, 7 * scale, 42 * scale, 4 * scale);
+      context.fill();
+
+      context.fillStyle = "rgba(229,247,246,.82)";
+      context.fillRect(centerX - 15 * scale, topY + 5 * scale, 30 * scale, 17 * scale);
+      context.strokeStyle = "#83afb3";
+      context.lineWidth = 2.5 * scale;
+      context.strokeRect(centerX - 15 * scale, topY + 5 * scale, 30 * scale, 17 * scale);
+      context.fillStyle = "#eefafa";
+      context.beginPath();
+      context.ellipse(centerX, topY + 5 * scale, 18 * scale, 5.5 * scale, 0, 0, Math.PI * 2);
+      context.fill();
+      context.strokeStyle = "#78a7ac";
+      context.stroke();
+      context.beginPath();
+      context.ellipse(centerX, topY + 8 * scale, 15 * scale, 3.4 * scale, 0, 0, Math.PI * 2);
+      context.strokeStyle = "#b5d2d3";
+      context.stroke();
+    }
+
+    async function createCardImage() {
+      const canvasWidth = 1200;
+      const margin = 60;
+      const contentWidth = canvasWidth - margin * 2;
+      const columns = 6;
+      const columnGap = 14;
+      const cardWidth = (contentWidth - columnGap * (columns - 1)) / columns;
+      const cardHeight = 176;
+      const rowGap = 12;
+      const groupHeaderHeight = 58;
+      const groupGap = 24;
+      const headerHeight = 220;
+      const footerHeight = 110;
+      const groupsHeight = groups.reduce((height, group) => {
+        const rows = Math.ceil(group.items.length / columns);
+        return height + groupHeaderHeight + rows * cardHeight + Math.max(0, rows - 1) * rowGap + groupGap;
+      }, 0);
+      const canvasHeight = margin + headerHeight + groupsHeight + footerHeight;
+      const canvas = document.createElement("canvas");
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error("当前浏览器无法生成图片");
+
+      context.fillStyle = "#f8fcfc";
+      context.fillRect(0, 0, canvasWidth, canvasHeight);
+      const glow = context.createRadialGradient(130, 20, 10, 130, 20, 430);
+      glow.addColorStop(0, "rgba(73,183,207,.19)");
+      glow.addColorStop(1, "rgba(73,183,207,0)");
+      context.fillStyle = glow;
+      context.fillRect(0, 0, 620, 520);
+
+      context.fillStyle = "#205b76";
+      context.font = '700 52px "Songti SC", "STSong", serif';
+      context.fillText("小圈喜好瓶 · 微大版", margin, margin + 58);
+      context.fillStyle = "#607d86";
+      context.font = '24px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+      context.fillText("轻点瓶子，用四档状态整理彼此的偏好与边界", margin, margin + 102);
+
+      const marked = state.filter(Boolean).length;
+      context.textAlign = "right";
+      context.fillStyle = "#205b76";
+      context.font = '700 27px -apple-system, "PingFang SC", sans-serif';
+      context.fillText(`已标记 ${marked}/${state.length}`, canvasWidth - margin, margin + 58);
+      context.textAlign = "left";
+
+      const legend = [
+        { label: "空瓶", color: "#e3eded" },
+        { label: "三分之一瓶", color: "#a9e2e6" },
+        { label: "三分之二瓶", color: "#51bdcf" },
+        { label: "满瓶", color: "#257b9b" }
+      ];
+      context.font = '21px -apple-system, "PingFang SC", sans-serif';
+      let legendX = margin;
+      legend.forEach(item => {
+        context.fillStyle = item.color;
+        context.beginPath();
+        context.arc(legendX + 9, margin + 151, 9, 0, Math.PI * 2);
+        context.fill();
+        context.fillStyle = "#4b707b";
+        context.fillText(item.label, legendX + 27, margin + 159);
+        legendX += context.measureText(item.label).width + 74;
+      });
+
+      const stateColors = [
+        { fill: "#ffffff", stroke: "#dfecec" },
+        { fill: "#f7fdfd", stroke: "#acdfe2" },
+        { fill: "#f3fbfc", stroke: "#71c8d3" },
+        { fill: "#eff9fb", stroke: "#3c93ad" }
+      ];
+      let y = margin + headerHeight;
+      let itemIndex = 0;
+
+      groups.forEach(group => {
+        context.fillStyle = "#205b76";
+        context.font = '700 30px "Songti SC", "STSong", serif';
+        context.fillText(group.name, margin, y + 35);
+        context.textAlign = "right";
+        context.fillStyle = "#87a5ad";
+        context.font = '21px -apple-system, "PingFang SC", sans-serif';
+        context.fillText(`${group.items.length} 项`, canvasWidth - margin, y + 34);
+        context.textAlign = "left";
+        y += groupHeaderHeight;
+
+        group.items.forEach((item, indexInGroup) => {
+          const row = Math.floor(indexInGroup / columns);
+          const column = indexInGroup % columns;
+          const x = margin + column * (cardWidth + columnGap);
+          const cardY = y + row * (cardHeight + rowGap);
+          const value = state[itemIndex++] ?? 0;
+          const colors = stateColors[value];
+          roundedRect(context, x, cardY, cardWidth, cardHeight, 17);
+          context.fillStyle = colors.fill;
+          context.fill();
+          context.lineWidth = 2;
+          context.strokeStyle = colors.stroke;
+          context.stroke();
+
+          drawJar(context, x + cardWidth / 2, cardY + 11, value, .92);
+          context.fillStyle = "#19353f";
+          context.font = '600 20px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+          context.textAlign = "center";
+          const lines = wrapCanvasText(context, item, cardWidth - 14, 2);
+          lines.forEach((line, lineIndex) => context.fillText(line, x + cardWidth / 2, cardY + 139 + lineIndex * 23));
+          context.textAlign = "left";
+        });
+
+        const rows = Math.ceil(group.items.length / columns);
+        y += rows * cardHeight + Math.max(0, rows - 1) * rowGap + groupGap;
+      });
+
+      context.textAlign = "center";
+      context.fillStyle = "#68838a";
+      context.font = '20px -apple-system, "PingFang SC", sans-serif';
+      context.fillText("仅用于成年人之间自愿、安全、清醒的沟通；填涂结果不等于同意。", canvasWidth / 2, canvasHeight - 58);
+      context.fillStyle = "#8dacb3";
+      context.font = '18px -apple-system, "PingFang SC", sans-serif';
+      context.fillText("小圈喜好瓶 · 微大版", canvasWidth / 2, canvasHeight - 27);
+
+      return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("图片生成失败")), "image/png"));
+    }
+
+    async function generateCurrentImage() {
+      const originalText = generateButton.textContent;
+      generateButton.disabled = true;
+      generateButton.textContent = "生成中…";
+      try {
+        const blob = await createCardImage();
+        if (generatedImageUrl) URL.revokeObjectURL(generatedImageUrl);
+        generatedImageUrl = URL.createObjectURL(blob);
+        generatedImage.src = generatedImageUrl;
+        imageDialog.showModal();
+      } catch (error) {
+        showToast(error?.message || "图片生成失败，请稍后重试");
+      } finally {
+        generateButton.disabled = false;
+        generateButton.textContent = originalText;
+      }
+    }
+
+    async function copyLink(url) {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(url);
+        return true;
+      }
+      shareUrl.value = url;
+      shareUrl.focus();
+      shareUrl.select();
+      return document.execCommand("copy");
+    }
+
+    function registerWebMCP() {
+      const context = document.modelContext;
+      if (!context?.registerTool) return;
+      const register = tool => { try { Promise.resolve(context.registerTool(tool)).catch(() => {}); } catch {} };
+      register({
+        name: "read_preference_card_expanded",
+        title: "读取微大版喜好瓶",
+        description: "读取当前页面所有项目及瓶子状态。0 为空瓶，1 为三分之一瓶，2 为三分之二瓶，3 为满瓶。",
+        inputSchema: { type: "object", properties: {}, additionalProperties: false },
+        annotations: { readOnlyHint: true, untrustedContentHint: false },
+        execute() { return { items: flatItems.map((name, index) => ({ name, level: state[index], label: labels[state[index]] })) }; }
+      });
+      register({
+        name: "set_preference_items_expanded",
+        title: "设置微大版喜好瓶状态",
+        description: "按项目名称批量设置瓶子状态。level 只能是 0、1、2 或 3。",
+        inputSchema: {
+          type: "object",
+          properties: { items: { type: "array", minItems: 1, items: { type: "object", properties: { name: { type: "string" }, level: { type: "integer", minimum: 0, maximum: 3 } }, required: ["name", "level"], additionalProperties: false } } },
+          required: ["items"],
+          additionalProperties: false
+        },
+        annotations: { readOnlyHint: false, untrustedContentHint: false },
+        execute(input) {
+          const updates = input?.items?.map(item => ({ index: flatItems.indexOf(item.name), ...item })) ?? [];
+          if (!updates.length || updates.some(item => item.index < 0 || ![0, 1, 2, 3].includes(item.level))) throw new Error("项目名称或状态无效");
+          updates.forEach(item => { state[item.index] = item.level; });
+          persist();
+          render();
+          return { updated: updates.map(({ name, level }) => ({ name, level, label: labels[level] })) };
+        }
+      });
+    }
+
+    generateButton.addEventListener("click", generateCurrentImage);
+    document.getElementById("closeImageDialog").addEventListener("click", () => imageDialog.close());
+    document.getElementById("downloadImage").addEventListener("click", () => {
+      if (!generatedImageUrl) return;
+      const link = document.createElement("a");
+      link.href = generatedImageUrl;
+      link.download = "小圈喜好瓶-微大版.png";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    });
+
+    document.getElementById("resetButton").addEventListener("click", () => {
+      if (!confirm("确定清空全部瓶子吗？")) return;
+      state = emptyState();
+      localStorage.removeItem(storageKey);
+      const url = new URL(location.href);
+      url.searchParams.delete("s");
+      url.searchParams.delete("v");
+      history.replaceState(null, "", url);
+      render();
+      showToast("已经清空");
+    });
+
+    document.getElementById("shareButton").addEventListener("click", async () => {
+      persist();
+      const url = location.href;
+      const title = "我的小圈喜好瓶 · 微大版";
+      const text = "我涂好了一份小圈喜好瓶，打开看看，也可以继续涂。";
+      if (navigator.share) {
+        try { await navigator.share({ title, text, url }); return; }
+        catch (error) { if (error?.name === "AbortError") return; }
+      }
+      try {
+        await copyLink(url);
+        showToast("链接已复制，粘贴到微信发给好友即可");
+      } catch {
+        shareUrl.value = url;
+        shareDialog.showModal();
+        shareUrl.select();
+      }
+    });
+
+    document.getElementById("closeDialog").addEventListener("click", () => shareDialog.close());
+    document.getElementById("copyDialog").addEventListener("click", async () => {
+      try { await copyLink(shareUrl.value); shareDialog.close(); showToast("链接已复制"); }
+      catch { shareUrl.select(); }
+    });
+
+    render();
+    registerWebMCP();
+  </script>
+</body>
+</html>
