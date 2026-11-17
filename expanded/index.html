@@ -353,8 +353,8 @@
       { name: "类型", items: ["纯实践", "惩戒管教", "游戏实践", "情景剧本", "氛围欢快", "氛围严肃"] },
       { name: "属性", items: ["易哭", "brat", "脆皮", "喜欢余痛"] },
       { name: "部位", items: ["屁股", "大腿背面", "大腿正面", "手心", "脚心", "后背", "脸", "胸", "私处"] },
-      { name: "感受", items: ["仪式感", "羞耻感", "压迫感", "被控制感", "不安感", "服从欲", "被关怀感"] },
-      { name: "附加", items: ["罚站", "罚跪", "姜罚", "难受姿势"] },
+      { name: "感受", items: ["仪式感", "羞耻感", "压迫感", "被控制感", "服从欲", "被关怀感"] },
+      { name: "附加", items: ["罚站", "罚跪", "姜罚", "难受姿势", "放置晾臀"] },
       { name: "其他", items: ["地面绳缚", "吊缚", "体外强高", "入体强高", "电击"] },
       { name: "工具", items: ["手", "皮具", "戒尺", "轻板子", "重板子", "藤条类", "橡胶类", "其他工具"] },
       { name: "姿势", items: ["亲密姿势", "舒适姿势", "一般姿势", "难坚持的", "较羞耻的", "少见姿势"] },
@@ -363,7 +363,8 @@
 
     const flatItems = groups.flatMap(group => group.items);
     const labels = ["空瓶", "三分之一瓶", "三分之二瓶", "满瓶"];
-    const storageKey = "bottle-preference-card-expanded-v1";
+    const storageKey = "bottle-preference-card-expanded-v2";
+    const legacyStorageKey = "bottle-preference-card-expanded-v1";
     const sections = document.getElementById("sections");
     const markedCount = document.getElementById("markedCount");
     const totalCount = document.getElementById("totalCount");
@@ -392,16 +393,28 @@
       } catch { return null; }
     }
 
+    function migrateV1(values) {
+      return [...values.slice(0, 23), ...values.slice(24, 30), 0, ...values.slice(30)];
+    }
+
     const params = new URLSearchParams(location.search);
-    const sharedState = params.get("s") ? decodeState(params.get("s")) : null;
+    const decodedSharedState = params.get("s") ? decodeState(params.get("s")) : null;
+    const sharedState = !decodedSharedState ? null
+      : params.get("v") === "2" ? decodedSharedState
+      : migrateV1(decodedSharedState);
     let state = sharedState;
 
     if (!state) {
       try {
         const saved = JSON.parse(localStorage.getItem(storageKey));
-        state = Array.isArray(saved) && saved.length === flatItems.length
-          ? saved.map(value => [0, 1, 2, 3].includes(value) ? value : 0)
-          : emptyState();
+        if (Array.isArray(saved) && saved.length === flatItems.length) {
+          state = saved.map(value => [0, 1, 2, 3].includes(value) ? value : 0);
+        } else {
+          const legacy = JSON.parse(localStorage.getItem(legacyStorageKey));
+          state = Array.isArray(legacy) && legacy.length === flatItems.length
+            ? migrateV1(legacy.map(value => [0, 1, 2, 3].includes(value) ? value : 0))
+            : emptyState();
+        }
       } catch { state = emptyState(); }
     } else {
       document.getElementById("sharedBanner").classList.add("visible");
@@ -440,7 +453,7 @@
       localStorage.setItem(storageKey, JSON.stringify(state));
       const url = new URL(location.href);
       url.searchParams.set("s", encodeState(state));
-      url.searchParams.set("v", "1");
+      url.searchParams.set("v", "2");
       history.replaceState(null, "", url);
     }
 
@@ -753,6 +766,7 @@
       if (!confirm("确定清空全部瓶子吗？")) return;
       state = emptyState();
       localStorage.removeItem(storageKey);
+      localStorage.removeItem(legacyStorageKey);
       const url = new URL(location.href);
       url.searchParams.delete("s");
       url.searchParams.delete("v");
